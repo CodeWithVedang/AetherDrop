@@ -1,7 +1,9 @@
 {
   "name": "aetherdrop-signaling",
   "version": "1.0.0",
+  "description": "AetherDrop signaling server (WebSocket)",
   "main": "signaling-server.js",
+  "type": "module",
   "scripts": {
     "start": "node signaling-server.js"
   },

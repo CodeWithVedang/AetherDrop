@@ -1,193 +1,444 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AetherDrop</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AetherDrop — Local File Share</title>
+<link rel="icon" href="data:,">
 <style>
-    body {
-        background: linear-gradient(135deg, #1f1c2c, #928dab);
-        font-family: 'Segoe UI', sans-serif;
-        margin: 0;
-        padding: 0;
-        color: white;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-    .container {
-        background: rgba(255,255,255,0.1);
-        padding: 2rem;
-        border-radius: 20px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        text-align: center;
-        width: 350px;
-        backdrop-filter: blur(10px);
-    }
-    h1 {
-        font-size: 1.8rem;
-        margin-bottom: 1rem;
-    }
-    button {
-        background: #ff7e5f;
-        border: none;
-        padding: 0.8rem 1.5rem;
-        margin: 0.5rem;
-        border-radius: 12px;
-        font-size: 1rem;
-        color: white;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-    button:hover {
-        background: #feb47b;
-    }
-    input[type="file"], input[type="text"] {
-        margin-top: 1rem;
-        padding: 0.5rem;
-        border-radius: 8px;
-        border: none;
-        outline: none;
-        width: 100%;
-        font-size: 1rem;
-    }
-    .progress {
-        background: rgba(255,255,255,0.2);
-        border-radius: 10px;
-        height: 12px;
-        width: 100%;
-        margin-top: 1rem;
-        overflow: hidden;
-    }
-    .progress-bar {
-        background: #ff7e5f;
-        height: 100%;
-        width: 0%;
-        transition: width 0.3s ease;
-    }
+:root{
+  --bg1:#0f1724; --bg2:#071022; --card:#0b1220;
+  --accent:#7BE0C8; --accent-2:#5DD3B3;
+  --muted:#9fb0bd; --glass:rgba(255,255,255,0.02);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:#e6f3f0;display:flex;align-items:center;justify-content:center;padding:28px}
+.app{width:980px;max-width:100%;border-radius:16px;padding:20px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 12px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.02)}
+.header{display:flex;align-items:center;gap:14px}
+.logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#052022;font-weight:800;font-size:22px}
+.title{font-size:20px;font-weight:700}
+.lead{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+.card{background:transparent;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#042022;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+.input{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:#06121a;color:#d6f6ef;width:100%}
+.code{font-weight:800;letter-spacing:4px;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:10px;font-size:20px}
+.small{font-size:13px;color:var(--muted)}
+.progress{height:12px;border-radius:10px;background:rgba(255,255,255,0.04);overflow:hidden;width:100%;margin-top:10px}
+.progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+.row{display:flex;gap:10px;align-items:center}
+.center{display:flex;align-items:center;justify-content:center}
+.hidden{display:none}
+.footer{font-size:12px;color:var(--muted);margin-top:10px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="container">
-    <h1>AetherDrop</h1>
-    <p id="status">Choose an option</p>
+<div class="app">
+  <div class="header">
+    <div class="logo">AD</div>
     <div>
-        <button onclick="startSender()">Send</button>
-        <button onclick="startReceiver()">Receive</button>
+      <div class="title">AetherDrop</div>
+      <div class="lead">Direct, peer-to-peer file transfer over local Wi-Fi. No storage, no uploads.</div>
     </div>
-    <div id="sendUI" style="display:none;">
-        <input type="file" id="fileInput">
-        <p>Your code: <span id="sendCode"></span></p>
+    <div style="margin-left:auto" class="small">v1 • WebRTC DataChannel + WebSocket signalling</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">Get started</div>
+          <div class="small" style="margin-top:6px">Choose Send or Receive. Share a 4-digit code to pair.</div>
+        </div>
+        <div class="row">
+          <button id="sendBtn" class="btn">Send</button>
+          <button id="recvBtn" class="btn ghost">Receive</button>
+        </div>
+      </div>
+
+      <div id="sendPanel" class="hidden" style="margin-top:14px">
+        <div style="font-weight:700">Send — select file</div>
+        <input id="fileInput" type="file" class="input" style="margin-top:10px"/>
+        <div style="margin-top:12px" class="row">
+          <div class="small">Share code with receiver:</div>
+          <div style="margin-left:auto" class="code" id="roomCode">— — — —</div>
+        </div>
+        <div class="progress" id="sendProgressWrap" style="display:none"><i id="sendBar"></i></div>
+        <div style="margin-top:10px" class="row">
+          <button id="startShare" class="btn">Start sharing</button>
+          <button id="cancelShare" class="btn ghost">Cancel</button>
+        </div>
+      </div>
+
+      <div id="recvPanel" class="hidden" style="margin-top:14px">
+        <div style="font-weight:700">Receive — enter code</div>
+        <input id="joinCode" class="input" placeholder="Enter 4-digit code" style="margin-top:10px"/>
+        <div style="margin-top:12px" class="row">
+          <button id="joinBtn" class="btn">Connect</button>
+          <button id="cancelJoin" class="btn ghost">Cancel</button>
+        </div>
+        <div class="progress" id="recvProgressWrap" style="display:none"><i id="recvBar"></i></div>
+        <div id="downloadPlace" style="margin-top:12px"></div>
+      </div>
+
+      <div class="footer">Tip: use devices on same Wi-Fi. If connection fails due to NAT, try again or use both devices closer to the router.</div>
     </div>
-    <div id="receiveUI" style="display:none;">
-        <input type="text" id="codeInput" placeholder="Enter 4-digit code">
+
+    <div class="card">
+      <div style="font-weight:700">Session</div>
+      <div style="margin-top:8px" class="small">Signalling server</div>
+      <input id="signalUrl" class="input" value="wss://aetherdrop.onrender.com" style="margin-top:8px" />
+      <div style="margin-top:12px">
+        <div class="small">Peer status: <span id="peerState">Idle</span></div>
+        <div class="small" style="margin-top:8px">Transfer status: <span id="transferState">Idle</span></div>
+      </div>
     </div>
-    <div class="progress" style="display:none;" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <a id="downloadLink" style="display:none;color:lightgreen;">Download File</a>
+  </div>
 </div>
 
 <script>
-const ws = new WebSocket("ws://localhost:3000");
-let peer, dataChannel;
-let fileBuffer = [], fileSize = 0, receivedSize = 0;
+/*
+  AetherDrop frontend
+  - WebSocket signalling (simple)
+  - RTCPeerConnection + DataChannel
+  - Chunked file transfer
+  - No server-side file storage
+*/
 
-// Sender
-function startSender() {
-    document.getElementById('sendUI').style.display = 'block';
-    const code = Math.floor(1000 + Math.random() * 9000);
-    document.getElementById('sendCode').textContent = code;
-    ws.send(JSON.stringify({ type: 'create-room', code }));
-    document.getElementById('status').textContent = "Waiting for receiver...";
-    ws.onmessage = ({data}) => {
-        const msg = JSON.parse(data);
-        if (msg.type === 'receiver-joined') {
-            createPeer(true, code);
-        }
-        if (msg.type === 'signal') {
-            peer.signal(msg.data);
-        }
+const SIGNALING_INPUT = document.getElementById('signalUrl');
+const sendBtn = document.getElementById('sendBtn');
+const recvBtn = document.getElementById('recvBtn');
+const sendPanel = document.getElementById('sendPanel');
+const recvPanel = document.getElementById('recvPanel');
+const fileInput = document.getElementById('fileInput');
+const roomCodeEl = document.getElementById('roomCode');
+const startShare = document.getElementById('startShare');
+const cancelShare = document.getElementById('cancelShare');
+const joinBtn = document.getElementById('joinBtn');
+const joinCode = document.getElementById('joinCode');
+const cancelJoin = document.getElementById('cancelJoin');
+const peerState = document.getElementById('peerState');
+const transferState = document.getElementById('transferState');
+const sendBar = document.getElementById('sendBar');
+const recvBar = document.getElementById('recvBar');
+const sendProgressWrap = document.getElementById('sendProgressWrap');
+const recvProgressWrap = document.getElementById('recvProgressWrap');
+const downloadPlace = document.getElementById('downloadPlace');
+
+let ws = null;
+let pc = null;
+let dataChannel = null;
+let isSender = false;
+let currentRoom = null;
+
+const CHUNK = 64 * 1024; // 64KB per chunk
+
+// utils
+function log(msg){ console.log('[AetherDrop]', msg); }
+function setPeerState(s){ peerState.textContent = s; }
+function setTransferState(s){ transferState.textContent = s; }
+
+// UI wiring
+sendBtn.onclick = () => { showSend(true); };
+recvBtn.onclick = () => { showRecv(true); };
+cancelShare.onclick = () => { resetUI(); };
+cancelJoin.onclick = () => { resetUI(); };
+
+startShare.onclick = async () => {
+  const file = fileInput.files[0];
+  if(!file) return alert('Select a file first');
+  if(!currentRoom) currentRoom = genCode();
+  await connectSignalling();
+  createPeer(true);
+  setTransferState('Creating offer...');
+  // Offer will be sent out via signalling once localDescription set
+};
+
+joinBtn.onclick = async () => {
+  const code = (joinCode.value || '').trim();
+  if(!/^\d{4}$/.test(code)) return alert('Enter 4-digit code');
+  currentRoom = code;
+  await connectSignalling();
+  createPeer(false);
+  setTransferState('Waiting for offer...');
+};
+
+// show UI helpers
+function showSend(show){
+  sendPanel.classList.toggle('hidden', !show);
+  recvPanel.classList.add('hidden');
+  if(show){
+    isSender = true;
+    currentRoom = genCode();
+    roomCodeEl.textContent = currentRoom;
+  } else {
+    isSender = false;
+    roomCodeEl.textContent = '— — — —';
+  }
+}
+function showRecv(show){
+  recvPanel.classList.toggle('hidden', !show);
+  sendPanel.classList.add('hidden');
+  isSender = false;
+}
+function resetUI(){
+  sendPanel.classList.add('hidden');
+  recvPanel.classList.add('hidden');
+  roomCodeEl.textContent = '— — — —';
+  joinCode.value = '';
+  downloadPlace.innerHTML = '';
+  sendProgressWrap.style.display = 'none';
+  recvProgressWrap.style.display = 'none';
+  setPeerState('Idle');
+  setTransferState('Idle');
+  if(ws) { try{ ws.close(); }catch(e){} ws=null; }
+  if(pc){ try{ pc.close(); }catch(e){} pc=null; }
+  dataChannel = null;
+  currentRoom = null;
+}
+
+// generate 4-digit code
+function genCode(){ return Math.floor(1000 + Math.random()*9000).toString(); }
+
+// connect to signaling server (WebSocket)
+async function connectSignalling(){
+  if(ws && ws.readyState === WebSocket.OPEN) return;
+  const url = (SIGNALING_INPUT.value || '').trim();
+  if(!url) throw new Error('Signaling server URL empty');
+  ws = new WebSocket(url);
+  ws.onopen = () => {
+    log('WS open');
+    setPeerState('Signalling connected');
+    // join the room
+    if(currentRoom) ws.send(JSON.stringify({ type:'join', room: currentRoom }));
+  };
+  ws.onmessage = async (ev) => {
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'ready'){
+        log('peer ready in room');
+        setPeerState('Peer arrived');
+        // sender may have already created offer locally and sent it
+      } else if(msg.type === 'signal' && msg.signal){
+        await handleSignal(msg.signal);
+      } else if(msg.type === 'peer-left'){
+        alert('Peer disconnected');
+        resetUI();
+      }
+    }catch(e){ console.warn(e); }
+  };
+  ws.onclose = () => setPeerState('Signalling closed');
+  ws.onerror = (e) => { console.error('WS error', e); setPeerState('WS error'); };
+}
+
+// send signaling message via ws
+function sendSignal(signal){
+  if(!ws || ws.readyState !== WebSocket.OPEN) {
+    log('WS not open; cannot send signal yet');
+    return;
+  }
+  ws.send(JSON.stringify({ type:'signal', room: currentRoom, signal }));
+}
+
+// create RTCPeerConnection and setup data channel
+function createPeer(initiator){
+  pc = new RTCPeerConnection({
+    iceServers: [{ urls:'stun:stun.l.google.com:19302' }]
+  });
+
+  pc.onicecandidate = (ev) => {
+    if(ev.candidate) sendSignal({ candidate: ev.candidate });
+  };
+
+  if(initiator){
+    // sender creates dataChannel
+    dataChannel = pc.createDataChannel('aether-file');
+    setupDataChannel();
+    // create offer
+    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
+      sendSignal({ sdp: pc.localDescription });
+      log('Offer sent');
+      setPeerState('Offer sent; waiting for answer');
+    });
+  } else {
+    // receiver will get datachannel via ondatachannel
+    pc.ondatachannel = (e) => {
+      dataChannel = e.channel;
+      setupDataChannel();
     };
-    document.getElementById('fileInput').addEventListener('change', e => {
-        const file = e.target.files[0];
-        fileSize = file.size;
-        document.getElementById('progressContainer').style.display = 'block';
-        sendFile(file);
-    });
+  }
+
+  // lifecycle
+  pc.onconnectionstatechange = () => {
+    log('pc state: '+pc.connectionState);
+    setPeerState(pc.connectionState);
+  };
 }
 
-// Receiver
-function startReceiver() {
-    document.getElementById('receiveUI').style.display = 'block';
-    document.getElementById('codeInput').addEventListener('change', e => {
-        const code = e.target.value;
-        ws.send(JSON.stringify({ type: 'join-room', code }));
-        createPeer(false, code);
-        document.getElementById('status').textContent = "Connecting...";
-    });
-    ws.onmessage = ({data}) => {
-        const msg = JSON.parse(data);
-        if (msg.type === 'signal') {
-            peer.signal(msg.data);
-        }
-        if (msg.type === 'error') {
-            alert(msg.message);
-        }
-    };
-}
-
-function createPeer(isInitiator, code) {
-    peer = new SimplePeer({ initiator: isInitiator, trickle: false });
-    peer.on('signal', data => {
-        ws.send(JSON.stringify({ type: 'signal', code, data }));
-    });
-    peer.on('connect', () => {
-        document.getElementById('status').textContent = "Connected";
-    });
-    peer.on('data', chunk => {
-        fileBuffer.push(chunk);
-        receivedSize += chunk.byteLength;
-        let percent = Math.floor((receivedSize / fileSize) * 100);
-        document.getElementById('progressBar').style.width = percent + "%";
-        if (receivedSize === fileSize) {
-            const blob = new Blob(fileBuffer);
-            const url = URL.createObjectURL(blob);
-            document.getElementById('downloadLink').href = url;
-            document.getElementById('downloadLink').download = "received_file";
-            document.getElementById('downloadLink').style.display = 'block';
-        }
-    });
-}
-
-function sendFile(file) {
-    const chunkSize = 16 * 1024;
-    const reader = new FileReader();
-    let offset = 0;
-
-    reader.addEventListener('load', e => {
-        sendChunk(e.target.result);
-    });
-
-    function sendChunk(chunk) {
-        dataChannel = peer.createDataChannel("file");
-        dataChannel.onopen = () => {
-            const sendNext = () => {
-                const slice = file.slice(offset, offset + chunkSize);
-                reader.readAsArrayBuffer(slice);
-                offset += chunkSize;
-                document.getElementById('progressBar').style.width = Math.floor((offset / file.size) * 100) + "%";
-                if (offset < file.size) {
-                    setTimeout(sendNext, 10);
-                }
-            };
-            sendNext();
-        };
-        dataChannel.onmessage = () => {};
+// handle incoming signals (offer/answer/candidates)
+async function handleSignal(signal){
+  if(signal.sdp){
+    const remoteDesc = new RTCSessionDescription(signal.sdp);
+    await pc.setRemoteDescription(remoteDesc);
+    if(remoteDesc.type === 'offer'){
+      // create answer
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      sendSignal({ sdp: pc.localDescription });
+      log('Answer sent');
+      setPeerState('Answer sent');
+    } else {
+      log('Remote SDP applied (answer)');
     }
+  }
+  if(signal.candidate){
+    try{
+      await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+      log('Added ICE candidate');
+    }catch(e){ console.warn('Failed to add ICE:', e); }
+  }
 }
+
+// data channel behaviors: both sender & receiver
+let incomingFileInfo = null;
+let incomingBuffers = [];
+let incomingReceived = 0;
+
+function setupDataChannel(){
+  if(!dataChannel) return;
+  dataChannel.binaryType = 'arraybuffer';
+
+  dataChannel.onopen = () => {
+    log('Data channel open');
+    setTransferState('Channel open');
+    if(isSender){
+      // if file already chosen and Start clicked, begin sending
+      const file = fileInput.files[0];
+      if(file) sendFile(file);
+    }
+  };
+
+  dataChannel.onclose = () => {
+    log('Data channel closed');
+    setTransferState('Channel closed');
+  };
+
+  dataChannel.onerror = (e) => {
+    console.error('DC error', e);
+    setTransferState('Channel error');
+  };
+
+  dataChannel.onmessage = (ev) => {
+    // handle control JSON messages or raw ArrayBuffer chunks
+    if(typeof ev.data === 'string'){
+      // text messages used for metadata or control
+      try{
+        const m = JSON.parse(ev.data);
+        if(m.type === 'meta'){
+          incomingFileInfo = { name: m.name, size: m.size };
+          incomingBuffers = [];
+          incomingReceived = 0;
+          recvProgressWrap.style.display = 'block';
+          setTransferState(`Receiving ${m.name}`);
+        } else if(m.type === 'done'){
+          // assemble file
+          const blob = new Blob(incomingBuffers);
+          const url = URL.createObjectURL(blob);
+          showDownload(incomingFileInfo.name, url);
+          setTransferState('Received');
+          recvBar.style.width = '100%';
+        }
+      }catch(err){
+        console.warn('Non-JSON string message', ev.data);
+      }
+      return;
+    }
+
+    // ArrayBuffer chunk
+    incomingBuffers.push(ev.data);
+    incomingReceived += ev.data.byteLength;
+    if(incomingFileInfo && incomingFileInfo.size){
+      const pct = Math.round((incomingReceived / incomingFileInfo.size) * 100);
+      recvBar.style.width = pct + '%';
+    }
+  };
+}
+
+// show download button
+function showDownload(filename, url){
+  downloadPlace.innerHTML = '';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.textContent = 'Download ' + filename;
+  a.className = 'btn';
+  downloadPlace.appendChild(a);
+}
+
+// send file in chunks over dataChannel
+function sendFile(file){
+  if(!dataChannel || dataChannel.readyState !== 'open'){
+    alert('Data channel not open yet. Wait for receiver to connect.');
+    return;
+  }
+  const size = file.size;
+  setTransferState('Sending '+file.name);
+  sendProgressWrap.style.display = 'block';
+  sendBar.style.width = '0%';
+
+  // send metadata first
+  dataChannel.send(JSON.stringify({ type:'meta', name: file.name, size }));
+
+  const reader = new FileReader();
+  let offset = 0;
+
+  reader.addEventListener('error', err => {
+    console.error('FileReader error', err);
+    setTransferState('Read error');
+  });
+
+  reader.addEventListener('load', e => {
+    dataChannel.send(e.target.result);
+    offset += e.target.result.byteLength;
+    const pct = Math.round((offset / size) * 100);
+    sendBar.style.width = pct + '%';
+    if(offset < size){
+      readSlice(offset);
+    } else {
+      // done
+      dataChannel.send(JSON.stringify({ type:'done' }));
+      setTransferState('Sent');
+    }
+  });
+
+  const readSlice = o => {
+    const slice = file.slice(o, o + CHUNK);
+    reader.readAsArrayBuffer(slice);
+  };
+
+  readSlice(0);
+}
+
+// helper to ensure code is 4-digit
+function ensure4(code){ return (''+code).padStart(4,'0'); }
+
+// generate code helper
+function genCode(){ return (Math.floor(1000 + Math.random()*9000)).toString(); }
+
+// init: hook file selection to update UI state
+fileInput.addEventListener('change', () => {
+  if(fileInput.files && fileInput.files[0]){
+    roomCodeEl.textContent = currentRoom || genCode();
+  }
+});
+
+// on page unload, close sockets
+window.addEventListener('beforeunload', () => { if(ws) ws.close(); if(pc) pc.close(); });
+
 </script>
-<script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
 </body>
 </html>
