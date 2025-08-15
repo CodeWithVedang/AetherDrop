@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AetherDrop</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        background: linear-gradient(135deg, #1f1c2c, #928dab);
+        font-family: 'Segoe UI', sans-serif;
+        margin: 0;
+        padding: 0;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    .container {
+        background: rgba(255,255,255,0.1);
+        padding: 2rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        text-align: center;
+        width: 350px;
+        backdrop-filter: blur(10px);
+    }
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+    button {
+        background: #ff7e5f;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        margin: 0.5rem;
+        border-radius: 12px;
+        font-size: 1rem;
+        color: white;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    button:hover {
+        background: #feb47b;
+    }
+    input[type="file"], input[type="text"] {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 1rem;
+    }
+    .progress {
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        height: 12px;
+        width: 100%;
+        margin-top: 1rem;
+        overflow: hidden;
+    }
+    .progress-bar {
+        background: #ff7e5f;
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>AetherDrop</h1>
+    <p id="status">Choose an option</p>
+    <div>
+        <button onclick="startSender()">Send</button>
+        <button onclick="startReceiver()">Receive</button>
+    </div>
+    <div id="sendUI" style="display:none;">
+        <input type="file" id="fileInput">
+        <p>Your code: <span id="sendCode"></span></p>
+    </div>
+    <div id="receiveUI" style="display:none;">
+        <input type="text" id="codeInput" placeholder="Enter 4-digit code">
+    </div>
+    <div class="progress" style="display:none;" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <a id="downloadLink" style="display:none;color:lightgreen;">Download File</a>
+</div>
+
+<script>
+const ws = new WebSocket("ws://localhost:3000");
+let peer, dataChannel;
+let fileBuffer = [], fileSize = 0, receivedSize = 0;
+
+// Sender
+function startSender() {
+    document.getElementById('sendUI').style.display = 'block';
+    const code = Math.floor(1000 + Math.random() * 9000);
+    document.getElementById('sendCode').textContent = code;
+    ws.send(JSON.stringify({ type: 'create-room', code }));
+    document.getElementById('status').textContent = "Waiting for receiver...";
+    ws.onmessage = ({data}) => {
+        const msg = JSON.parse(data);
+        if (msg.type === 'receiver-joined') {
+            createPeer(true, code);
+        }
+        if (msg.type === 'signal') {
+            peer.signal(msg.data);
+        }
+    };
+    document.getElementById('fileInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        fileSize = file.size;
+        document.getElementById('progressContainer').style.display = 'block';
+        sendFile(file);
+    });
+}
+
+// Receiver
+function startReceiver() {
+    document.getElementById('receiveUI').style.display = 'block';
+    document.getElementById('codeInput').addEventListener('change', e => {
+        const code = e.target.value;
+        ws.send(JSON.stringify({ type: 'join-room', code }));
+        createPeer(false, code);
+        document.getElementById('status').textContent = "Connecting...";
+    });
+    ws.onmessage = ({data}) => {
+        const msg = JSON.parse(data);
+        if (msg.type === 'signal') {
+            peer.signal(msg.data);
+        }
+        if (msg.type === 'error') {
+            alert(msg.message);
+        }
+    };
+}
+
+function createPeer(isInitiator, code) {
+    peer = new SimplePeer({ initiator: isInitiator, trickle: false });
+    peer.on('signal', data => {
+        ws.send(JSON.stringify({ type: 'signal', code, data }));
+    });
+    peer.on('connect', () => {
+        document.getElementById('status').textContent = "Connected";
+    });
+    peer.on('data', chunk => {
+        fileBuffer.push(chunk);
+        receivedSize += chunk.byteLength;
+        let percent = Math.floor((receivedSize / fileSize) * 100);
+        document.getElementById('progressBar').style.width = percent + "%";
+        if (receivedSize === fileSize) {
+            const blob = new Blob(fileBuffer);
+            const url = URL.createObjectURL(blob);
+            document.getElementById('downloadLink').href = url;
+            document.getElementById('downloadLink').download = "received_file";
+            document.getElementById('downloadLink').style.display = 'block';
+        }
+    });
+}
+
+function sendFile(file) {
+    const chunkSize = 16 * 1024;
+    const reader = new FileReader();
+    let offset = 0;
+
+    reader.addEventListener('load', e => {
+        sendChunk(e.target.result);
+    });
+
+    function sendChunk(chunk) {
+        dataChannel = peer.createDataChannel("file");
+        dataChannel.onopen = () => {
+            const sendNext = () => {
+                const slice = file.slice(offset, offset + chunkSize);
+                reader.readAsArrayBuffer(slice);
+                offset += chunkSize;
+                document.getElementById('progressBar').style.width = Math.floor((offset / file.size) * 100) + "%";
+                if (offset < file.size) {
+                    setTimeout(sendNext, 10);
+                }
+            };
+            sendNext();
+        };
+        dataChannel.onmessage = () => {};
+    }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
+</body>
+</html>
