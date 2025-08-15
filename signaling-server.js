@@ -1,6 +1,6 @@
 // signaling-server.js
-const WebSocket = require("ws");
-const http = require("http");
+import { WebSocketServer } from "ws";
+import http from "http";
 
 // Create HTTP server for Render health check
 const server = http.createServer((req, res) => {
@@ -9,9 +9,9 @@ const server = http.createServer((req, res) => {
 });
 
 // Create WebSocket server
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocketServer({ server });
 
-const rooms = {}; // Store { roomCode: [ws1, ws2] }
+const rooms = {};
 
 wss.on("connection", (ws) => {
   ws.on("message", (message) => {
@@ -24,22 +24,20 @@ wss.on("connection", (ws) => {
         rooms[room].push(ws);
         console.log(`User joined room ${room}`);
 
-        // Notify other peer that second user joined
         if (rooms[room].length === 2) {
           rooms[room].forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
+            if (client.readyState === ws.OPEN) {
               client.send(JSON.stringify({ type: "ready" }));
             }
           });
         }
       }
 
-      // Relay messages between peers in the same room
       if (data.type === "signal") {
         const { room, signal } = data;
         if (rooms[room]) {
           rooms[room].forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
+            if (client !== ws && client.readyState === ws.OPEN) {
               client.send(JSON.stringify({ type: "signal", signal }));
             }
           });
@@ -51,7 +49,6 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    // Remove closed connections from all rooms
     for (const room in rooms) {
       rooms[room] = rooms[room].filter((client) => client !== ws);
       if (rooms[room].length === 0) delete rooms[room];
