@@ -3,131 +3,181 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AetherDrop</title>
+<title>AetherDrop — P2P File Share</title>
 <link rel="icon" href="data:,">
 <style>
+/* Theme variables for dark and light */
 :root{
-  --bg1:#0b1220; --bg2:#071226;
-  --card:#0e1720; --muted:#98a6b0;
-  --accent:#6EE7C8; --accent-2:#39C9A9;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --bg: #071226;
+  --panel: rgba(255,255,255,0.02);
+  --text: #e6f7f2;
+  --muted: #98a6b0;
+  --accent: #6EE7C8;
+  --accent-2: #39C9A9;
+  --card-shadow: 0 12px 38px rgba(0,0,0,0.55);
+  --glass: rgba(255,255,255,0.02);
 }
+:root[data-theme="light"]{
+  --bg: linear-gradient(180deg,#f6fbfb,#eef7f6);
+  --panel: rgba(2,8,10,0.03);
+  --text: #07211f;
+  --muted: #556b6a;
+  --accent: #06b39a;
+  --accent-2: #04927f;
+  --card-shadow: 0 8px 24px rgba(2,8,10,0.06);
+  --glass: rgba(2,8,10,0.03);
+}
+
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#e6f7f2}
-.container{max-width:920px;margin:36px auto;padding:20px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 12px 38px rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.02)}
-.header{display:flex;align-items:center;gap:14px}
-.logo{width:62px;height:62px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#052022;font-weight:800;font-size:22px}
-.title{font-size:20px;font-weight:700}
-.lead{color:var(--muted);margin-top:6px;font-size:13px}
-.grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:20px}
-.card{background:transparent;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
-.controls{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.btn{
-  background:linear-gradient(90deg,var(--accent),var(--accent-2));
-  color:#042022;border:none;padding:12px 14px;border-radius:10px;font-weight:700;cursor:pointer;
-  box-shadow:0 8px 20px rgba(41,163,142,0.06);
-}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.container{max-width:900px;margin:28px auto;padding:20px;border-radius:14px;background:linear-gradient(180deg,var(--panel), rgba(255,255,255,0.01));box-shadow:var(--card-shadow);border:1px solid rgba(255,255,255,0.02)}
+.header{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#042022;font-weight:800;font-size:20px}
+.title{font-weight:700;font-size:20px}
+.lead{color:var(--muted);font-size:13px;margin-top:6px}
+.main{display:flex;gap:18px;align-items:flex-start;margin-top:18px;flex-wrap:wrap}
+.left{flex:1;min-width:260px}
+.right{width:150px;min-width:140px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.card{background:transparent;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+.quick{font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.controls{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#042022;border:none;padding:12px 14px;border-radius:10px;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(41,163,142,0.06)}
 .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-.input{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:#06121a;color:#d6f6ef;width:100%}
-.code{font-weight:800;letter-spacing:6px;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:10px;font-size:20px}
+.input{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);background:transparent;color:var(--text);width:100%;margin-top:10px}
+.code{font-weight:800;letter-spacing:6px;padding:8px 12px;border-radius:10px;font-size:20px;background:rgba(255,255,255,0.02)}
 .small{font-size:13px;color:var(--muted)}
 .progress{height:12px;border-radius:10px;background:rgba(255,255,255,0.03);overflow:hidden;width:100%;margin-top:10px}
 .progress > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
 .hidden{display:none}
-.download-card{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(90deg, rgba(255,255,255,0.015), transparent);border:1px solid rgba(255,255,255,0.02)}
+
+/* status indicator circle */
+.status-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.status-circle{
+  width:110px;height:110px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;border:1px solid rgba(255,255,255,0.03)
+}
+.status-dot{width:18px;height:18px;border-radius:99px;box-shadow:0 6px 18px rgba(0,0,0,0.3)}
+.status-text{margin-top:6px;font-weight:700}
+.status-small{font-size:12px;color:var(--muted)}
+
+/* received file card */
+.download-card{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(90deg, rgba(255,255,255,0.015), transparent);border:1px solid rgba(255,255,255,0.02);margin-top:12px}
 .file-meta{display:flex;flex-direction:column;min-width:0}
 .file-name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .file-size{font-size:13px;color:var(--muted);margin-top:4px}
 .download-btn{margin-left:auto;background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:10px 12px;border-radius:10px;color:#042022;font-weight:700;border:none;cursor:pointer}
-.small-ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:8px;border-radius:8px;color:var(--muted)}
-.footer{font-size:12px;color:var(--muted);margin-top:14px}
-@media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+/* footer and misc */
+.footer{font-size:13px;color:var(--muted);margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.github{display:flex;align-items:center;gap:8px;margin-top:6px}
+.github a{color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:8px}
+.theme-toggle{display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--muted)}
+
+/* responsive */
+@media (max-width:720px){
+  .main{flex-direction:column-reverse}
+  .right{width:100%;flex-direction:row;justify-content:space-between}
+  .status-circle{width:92px;height:92px}
+}
 </style>
 </head>
 <body>
-<div class="container">
+<div class="container" id="app">
   <div class="header">
     <div class="logo">AD</div>
     <div>
       <div class="title">AetherDrop</div>
       <div class="lead">Direct peer-to-peer file transfer over local Wi-Fi. No storage — files go straight device-to-device.</div>
     </div>
-    <div style="margin-left:auto" class="small">v1</div>
+
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <div class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle></svg>
+        <div style="font-size:13px;color:var(--muted)">Theme</div>
+      </div>
+    </div>
   </div>
 
-  <div class="grid">
-    <div class="card">
-      <!-- Landing: only Send / Receive -->
-      <div id="landing" class="">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="font-weight:700">Quick start</div>
+  <div class="main">
+    <div class="left">
+      <div class="card">
+        <div class="quick">
+          <div>Quick start</div>
           <div class="small">No uploads. P2P only.</div>
         </div>
-        <div class="controls" style="margin-top:18px">
-          <button id="sendBtn" class="btn">Send</button>
-          <button id="recvBtn" class="btn ghost">Receive</button>
+
+        <div class="controls">
+          <button class="btn" id="sendBtn">Send</button>
+          <button class="btn ghost" id="recvBtn">Receive</button>
+        </div>
+
+        <!-- send panel -->
+        <div id="sendPanel" class="hidden" style="margin-top:16px">
+          <div style="font-weight:700">Send — choose a file</div>
+          <input id="fileInput" type="file" class="input" style="margin-top:10px"/>
+          <div style="margin-top:12px" class="small">Share this 4-digit code with the receiver</div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+            <div class="code" id="roomCode">— — — —</div>
+            <button id="copyCodeBtn" class="btn ghost">Copy</button>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:12px">
+            <button id="startShare" class="btn">Start sharing</button>
+            <button id="cancelShare" class="btn ghost">Back</button>
+          </div>
+
+          <div class="progress hidden" id="sendProgressWrap"><i id="sendBar"></i></div>
+        </div>
+
+        <!-- receive panel -->
+        <div id="recvPanel" class="hidden" style="margin-top:16px">
+          <div style="font-weight:700">Receive — enter 4-digit code</div>
+          <input id="joinCode" class="input" placeholder="Enter 4-digit code" style="margin-top:10px"/>
+          <div style="display:flex;gap:12px;margin-top:12px">
+            <button id="joinBtn" class="btn">Connect</button>
+            <button id="cancelJoin" class="btn ghost">Back</button>
+          </div>
+
+          <div class="small" style="margin-top:12px">Incoming file</div>
+          <div id="incomingPlace" style="margin-top:10px"></div>
+
+          <div class="progress hidden" id="recvProgressWrap"><i id="recvBar"></i></div>
+        </div>
+
+        <div class="footer">
+          <div>For best results use devices on same Wi-Fi and keep both browsers open until transfer completes.</div>
+          <div class="github">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.38-3.88-1.38-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.33.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .97-.31 3.18 1.17a11.04 11.04 0 0 1 2.9-.39c.99 0 1.99.13 2.92.39 2.2-1.48 3.17-1.17 3.17-1.17.63 1.58.24 2.74.12 3.03.74.8 1.18 1.82 1.18 3.07 0 4.4-2.7 5.36-5.27 5.64.41.36.77 1.08.77 2.18 0 1.58-.01 2.86-.01 3.25 0 .31.2.67.79.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" fill="currentColor"/></svg>
+            <a href="https://github.com/CodeWithVedang/" target="_blank" rel="noopener">CodeWithVedang</a>
+          </div>
         </div>
       </div>
-
-      <!-- Send panel -->
-      <div id="sendPanel" class="hidden" style="margin-top:16px">
-        <div style="font-weight:700">Send — choose a file</div>
-        <input id="fileInput" type="file" class="input" style="margin-top:10px"/>
-        <div style="margin-top:12px" class="small">Share this 4-digit code with the receiver</div>
-        <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-          <div class="code" id="roomCode">— — — —</div>
-          <button id="copyCodeBtn" class="small-ghost">Copy</button>
-        </div>
-
-        <div class="controls" style="margin-top:12px">
-          <button id="startShare" class="btn">Start sharing</button>
-          <button id="cancelShare" class="btn ghost">Back</button>
-        </div>
-
-        <div class="progress hidden" id="sendProgressWrap"><i id="sendBar"></i></div>
-      </div>
-
-      <!-- Receive panel -->
-      <div id="recvPanel" class="hidden" style="margin-top:16px">
-        <div style="font-weight:700">Receive — enter 4-digit code</div>
-        <input id="joinCode" class="input" placeholder="Enter 4-digit code" style="margin-top:10px"/>
-        <div class="controls" style="margin-top:12px">
-          <button id="joinBtn" class="btn">Connect</button>
-          <button id="cancelJoin" class="btn ghost">Back</button>
-        </div>
-
-        <div class="small" style="margin-top:10px">Incoming file</div>
-        <div id="incomingPlace" style="margin-top:10px"></div>
-
-        <div class="progress hidden" id="recvProgressWrap"><i id="recvBar"></i></div>
-      </div>
-
-      <div class="footer">For best results use devices on same Wi-Fi and keep both browsers open until transfer completes.</div>
     </div>
 
-    <div class="card">
-      <div style="font-weight:700">Status</div>
-      <div style="margin-top:10px" class="small">Peer: <span id="peerState">Idle</span></div>
-      <div style="margin-top:8px" class="small">Transfer: <span id="transferState">Idle</span></div>
-      <div style="margin-top:12px" class="small">(Server URL hidden from UI — paired via code)</div>
+    <div class="right">
+      <div class="card status-wrap">
+        <div class="status-circle" id="statusCircle">
+          <div class="status-dot" id="statusDot" style="background:#c03"></div>
+          <div class="status-text" id="statusLabel">Idle</div>
+        </div>
+        <div class="status-small" id="statusSmall">No session</div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-/*
-  AetherDrop frontend (fixed)
-  - Uses SIGNALING_SERVER (internal)
-  - Click Send shows code immediately
-  - Start sharing / Connect handle WS + WebRTC correctly
-  - Robust waits for WS open and DataChannel open before sending
+/* AetherDrop front-end with updated UI
+   - SIGNALING_SERVER is internal and not shown in UI
+   - Status indicator circle updates color + text
+   - Theme toggle and responsive layout
 */
 
-const SIGNALING_SERVER = 'wss://aetherdrop.onrender.com';
+const SIGNALING_SERVER = 'wss://aetherdrop.onrender.com'; // internal only
 
+// UI references
 const sendBtn = document.getElementById('sendBtn');
 const recvBtn = document.getElementById('recvBtn');
-const landing = document.getElementById('landing');
 const sendPanel = document.getElementById('sendPanel');
 const recvPanel = document.getElementById('recvPanel');
 const fileInput = document.getElementById('fileInput');
@@ -143,130 +193,131 @@ const sendProgressWrap = document.getElementById('sendProgressWrap');
 const recvProgressWrap = document.getElementById('recvProgressWrap');
 const sendBar = document.getElementById('sendBar');
 const recvBar = document.getElementById('recvBar');
-const peerState = document.getElementById('peerState');
-const transferState = document.getElementById('transferState');
+const statusDot = document.getElementById('statusDot');
+const statusLabel = document.getElementById('statusLabel');
+const statusSmall = document.getElementById('statusSmall');
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
 
 let ws = null;
 let pc = null;
 let dataChannel = null;
 let isSender = false;
 let currentRoom = null;
-const CHUNK = 64 * 1024; // 64KB chunks
+const CHUNK = 64 * 1024;
 
-// UI events
+// events
 sendBtn.onclick = () => showPanel('send');
 recvBtn.onclick = () => showPanel('recv');
 cancelShare.onclick = () => showPanel('home');
 cancelJoin.onclick = () => showPanel('home');
-copyCodeBtn.onclick = () => {
-  if(currentRoom) navigator.clipboard.writeText(currentRoom).then(()=>alert('Code copied'));
-};
+copyCodeBtn.onclick = () => { if(currentRoom) navigator.clipboard.writeText(currentRoom).then(()=>alert('Code copied')) };
 startShareBtn.onclick = startSharing;
 joinBtn.onclick = joinRoom;
+themeToggle.onclick = toggleTheme;
 
-// UI functions
-function showPanel(name){
-  if(name === 'home'){
-    landing.classList.remove('hidden');
+// UI control
+function showPanel(mode){
+  if(mode === 'home'){
     sendPanel.classList.add('hidden');
     recvPanel.classList.add('hidden');
     cleanup();
-  } else if(name === 'send'){
-    landing.classList.add('hidden');
+  } else if(mode === 'send'){
     sendPanel.classList.remove('hidden');
     recvPanel.classList.add('hidden');
     isSender = true;
-    currentRoom = genCode();
+    currentRoom = generateCode();
     roomCodeEl.textContent = currentRoom;
-    setPeer('Idle'); setTransfer('Idle');
-  } else if(name === 'recv'){
-    landing.classList.add('hidden');
-    sendPanel.classList.add('hidden');
+    setStatus('idle','No session');
+    setSmall('Share this code with the receiver');
+  } else if(mode === 'recv'){
     recvPanel.classList.remove('hidden');
+    sendPanel.classList.add('hidden');
     isSender = false;
-    setPeer('Idle'); setTransfer('Idle');
+    setStatus('idle','No session');
+    setSmall('Enter code provided by sender');
   }
 }
 
-function setPeer(s){ peerState.textContent = s; }
-function setTransfer(s){ transferState.textContent = s; }
+// theme toggle
+function toggleTheme(){
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  // swap icon (simple)
+  themeIcon.innerHTML = next === 'dark' ? '<circle cx=\"12\" cy=\"12\" r=\"4\"></circle>' : '<path d=\"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z\"></path>';
+}
 
-function genCode(){ return (Math.floor(1000 + Math.random()*9000)).toString(); }
+// status helpers (state: idle, waiting, ready, transferring, done, error)
+function setStatus(state, label){
+  statusLabel.textContent = label || '';
+  switch(state){
+    case 'idle': statusDot.style.background = '#c03'; break; // red
+    case 'waiting': statusDot.style.background = '#f5a623'; break; // amber
+    case 'ready': statusDot.style.background = '#2ecc71'; break; // green
+    case 'transferring': statusDot.style.background = '#1e90ff'; break; // blue
+    case 'done': statusDot.style.background = '#2ecc71'; break;
+    case 'error': statusDot.style.background = '#c03'; break;
+    default: statusDot.style.background = '#c03';
+  }
+}
+function setSmall(text){ statusSmall.textContent = text || ''; }
 
-// Connect WS and join room
-function openWsAndJoin(room){
-  return new Promise((resolve, reject) => {
-    if(ws && ws.readyState === WebSocket.OPEN){
-      ws.send(JSON.stringify({ type:'join', room }));
-      return resolve();
-    }
+// generate 4-digit code
+function generateCode(){ return (Math.floor(1000 + Math.random()*9000)).toString(); }
 
-    ws = new WebSocket(SIGNALING_SERVER);
+// WS connect & join
+async function openWsAndJoin(room){
+  if(ws && ws.readyState === WebSocket.OPEN){ ws.send(JSON.stringify({ type:'join', room })); return; }
+  setStatus('waiting','Connecting to signalling');
+  ws = new WebSocket(SIGNALING_SERVER);
 
-    ws.onopen = () => {
-      setPeer('Signalling connected');
-      ws.send(JSON.stringify({ type:'join', room }));
-      resolve();
-    };
+  ws.onopen = () => {
+    setStatus('ready','Signalling connected');
+    ws.send(JSON.stringify({ type:'join', room }));
+    log('WS open');
+  };
 
-    ws.onmessage = async (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        if(msg.type === 'ready'){
-          setPeer('Peer arrived');
-        } else if(msg.type === 'signal' && msg.signal){
-          await handleSignal(msg.signal);
-        } else if(msg.type === 'peer-left'){
-          alert('Peer disconnected');
-          cleanup();
-        }
-      } catch(e){
-        console.warn('WS parse error', e);
+  ws.onmessage = async (ev) => {
+    try{
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'ready'){
+        setStatus('ready','Peer arrived');
+        log('Peer ready');
+      } else if(msg.type === 'signal' && msg.signal){
+        await handleSignal(msg.signal);
+      } else if(msg.type === 'peer-left'){
+        alert('Peer disconnected');
+        cleanup();
       }
-    };
+    }catch(e){ console.warn('WS msg error', e); }
+  };
 
-    ws.onerror = (e) => {
-      console.error('WS error', e);
-      setPeer('WS error');
-      reject(e);
-    };
-
-    ws.onclose = () => setPeer('WS closed');
-  });
+  ws.onerror = (e) => { setStatus('error','WS error'); console.error('WS error', e); };
+  ws.onclose = () => { setStatus('idle','WS closed'); };
 }
 
-function wsSend(obj){
-  if(!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify(obj));
-}
+function wsSend(obj){ if(!ws || ws.readyState !== WebSocket.OPEN) return; ws.send(JSON.stringify(obj)); }
 
-// create RTCPeerConnection and set up channels/callbacks
+// create RTCPeerConnection
 function createPeer(initiator){
-  pc = new RTCPeerConnection({ iceServers:[{urls:'stun:stun.l.google.com:19302'}] });
+  pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
 
-  pc.onicecandidate = (ev) => {
-    if(ev.candidate) wsSend({ type:'signal', room: currentRoom, signal: { candidate: ev.candidate } });
-  };
+  pc.onicecandidate = (ev) => { if(ev.candidate) wsSend({ type:'signal', room: currentRoom, signal: { candidate: ev.candidate } }); };
 
-  pc.onconnectionstatechange = () => {
-    setPeer(pc.connectionState);
-    if(pc.connectionState === 'failed' || pc.connectionState === 'disconnected'){
-      setTransfer('Disconnected');
-    }
-  };
+  pc.onconnectionstatechange = () => { setStatus(pc.connectionState === 'connected' ? 'ready' : (pc.connectionState || 'idle'), `Peer ${pc.connectionState}`); };
 
   if(initiator){
     dataChannel = pc.createDataChannel('aether-file');
-    setupDataChannel();
-    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
-      wsSend({ type:'signal', room: currentRoom, signal: { sdp: pc.localDescription } });
-      setPeer('Offer sent');
-    }).catch(e => console.error('Offer error', e));
+    setupChannel();
+    pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(()=> {
+      wsSend({ type:'signal', room: currentRoom, signal: { sdp: pc.localDescription }});
+      setSmall('Offer sent — waiting for answer');
+      setStatus('waiting','Offer sent');
+    }).catch(err => { setStatus('error','Offer failed'); console.error(err); });
   } else {
-    pc.ondatachannel = (ev) => {
-      dataChannel = ev.channel;
-      setupDataChannel();
-    };
+    pc.ondatachannel = (ev) => { dataChannel = ev.channel; setupChannel(); };
   }
 }
 
@@ -276,47 +327,46 @@ async function handleSignal(signal){
     if(signal.sdp.type === 'offer'){
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      wsSend({ type:'signal', room: currentRoom, signal: { sdp: pc.localDescription } });
-      setPeer('Answer sent');
+      wsSend({ type:'signal', room: currentRoom, signal: { sdp: pc.localDescription }});
+      setSmall('Answer sent');
+      setStatus('ready','Answer sent');
     } else {
-      setPeer('Remote SDP applied');
+      setSmall('Remote SDP applied');
+      setStatus('ready','Connected');
     }
   }
   if(signal.candidate){
-    try{
-      await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-    }catch(e){ console.warn('addIce failed', e); }
+    try{ await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)); }catch(e){ console.warn('ICE failed', e); }
   }
 }
 
-// DataChannel behavior
+// DataChannel
 let incomingInfo = null;
 let incomingBuffers = [];
 let incomingReceived = 0;
 
-function setupDataChannel(){
+function setupChannel(){
   dataChannel.binaryType = 'arraybuffer';
 
-  dataChannel.onopen = () => {
-    setTransfer('Channel open');
-    log('DataChannel open');
-  };
+  dataChannel.onopen = () => { setSmall('Data channel open'); setStatus('ready','Channel open'); };
+  dataChannel.onclose = () => { setSmall('Channel closed'); setStatus('idle','Channel closed'); };
+  dataChannel.onerror = (e) => { setSmall('Channel error'); setStatus('error','Channel error'); console.error(e); };
 
   dataChannel.onmessage = (ev) => {
     if(typeof ev.data === 'string'){
       try{
-        const m = JSON.parse(ev.data);
-        if(m.type === 'meta'){
-          incomingInfo = { name: m.name, size: m.size };
+        const msg = JSON.parse(ev.data);
+        if(msg.type === 'meta'){
+          incomingInfo = { name: msg.name, size: msg.size };
           incomingBuffers = []; incomingReceived = 0;
           recvProgressWrap.classList.remove('hidden'); recvBar.style.width='0%';
-          setTransfer(`Receiving ${incomingInfo.name}`);
+          setStatus('transferring', `Receiving ${incomingInfo.name}`);
           renderIncomingPlaceholder(incomingInfo.name, incomingInfo.size);
-        } else if(m.type === 'done'){
+        } else if(msg.type === 'done'){
           const blob = new Blob(incomingBuffers);
           const url = URL.createObjectURL(blob);
           showReceivedFile(incomingInfo.name, incomingInfo.size, url);
-          setTransfer('Received');
+          setStatus('done','Received');
           recvBar.style.width = '100%';
         }
       }catch(e){ console.warn('string parse', e); }
@@ -331,9 +381,6 @@ function setupDataChannel(){
       recvBar.style.width = pct + '%';
     }
   };
-
-  dataChannel.onclose = () => setTransfer('Channel closed');
-  dataChannel.onerror = (e) => { console.error('DC error', e); setTransfer('Channel error'); };
 }
 
 // Start sharing (sender)
@@ -341,26 +388,24 @@ async function startSharing(){
   const file = fileInput.files[0];
   if(!file) return alert('Pick a file first');
   isSender = true;
-  if(!currentRoom) currentRoom = genCode();
+  if(!currentRoom) currentRoom = roomCodeEl.textContent || generateCode();
   roomCodeEl.textContent = currentRoom;
   await openWsAndJoin(currentRoom);
   createPeer(true);
 
-  // wait for data channel open (up to 20s)
-  try{
-    await waitForCondition(()=>dataChannel && dataChannel.readyState === 'open', 20000);
-  }catch(e){
-    alert('Failed to open data channel. Make sure receiver entered code and try again.');
+  // wait for dataChannel open
+  try{ await waitForCondition(()=>dataChannel && dataChannel.readyState === 'open', 20000); }catch(e){
+    alert('Data channel not ready. Ask receiver to enter code.');
     return;
   }
 
-  // send file
-  sendProgressWrap.classList.remove('hidden'); sendBar.style.width='0%';
+  setStatus('transferring','Sending file');
+  sendProgressWrap.classList.remove('hidden'); sendBar.style.width = '0%';
   dataChannel.send(JSON.stringify({ type:'meta', name: file.name, size: file.size }));
 
   const reader = new FileReader();
   let offset = 0;
-  reader.onerror = () => { setTransfer('Read error'); };
+  reader.onerror = () => setStatus('error','Read error');
 
   reader.onload = (e) => {
     dataChannel.send(e.target.result);
@@ -368,49 +413,28 @@ async function startSharing(){
     const pct = Math.round((offset / file.size) * 100);
     sendBar.style.width = pct + '%';
     if(offset < file.size) readSlice(offset);
-    else {
-      dataChannel.send(JSON.stringify({ type:'done' }));
-      setTransfer('Sent');
-    }
+    else { dataChannel.send(JSON.stringify({ type:'done' })); setStatus('done','Sent'); }
   };
 
-  const readSlice = o => {
-    const slice = file.slice(o, o + CHUNK);
-    reader.readAsArrayBuffer(slice);
-  };
-
+  const readSlice = o => { const slice = file.slice(o, o + CHUNK); reader.readAsArrayBuffer(slice); };
   readSlice(0);
 }
 
-// Join room as receiver
+// Join as receiver
 async function joinRoom(){
   const code = (joinCode.value || '').trim();
-  if(!/^\d{4}$/.test(code)) return alert('Enter valid 4-digit code');
+  if(!/^\d{4}$/.test(code)) return alert('Enter a valid 4-digit code');
   currentRoom = code;
   await openWsAndJoin(currentRoom);
   createPeer(false);
-  setTransfer('Waiting for offer...');
+  setStatus('waiting','Waiting for offer');
 }
 
-// small helper: wait for condition
-function waitForCondition(fn, timeout = 10000){
-  return new Promise((resolve,reject) => {
-    const start = Date.now();
-    (function check(){
-      try{ if(fn()) return resolve(); }catch(e){}
-      if(Date.now() - start > timeout) return reject(new Error('timeout'));
-      setTimeout(check, 200);
-    })();
-  });
-}
-
-// render incoming file placeholder
+// UI render helpers for incoming file
 function renderIncomingPlaceholder(name, size){
   incomingPlace.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'download-card';
-  const meta = document.createElement('div');
-  meta.className = 'file-meta';
+  const wrap = document.createElement('div'); wrap.className = 'download-card';
+  const meta = document.createElement('div'); meta.className = 'file-meta';
   const nm = document.createElement('div'); nm.className = 'file-name'; nm.textContent = name;
   const sz = document.createElement('div'); sz.className = 'file-size'; sz.textContent = humanFileSize(size);
   meta.appendChild(nm); meta.appendChild(sz);
@@ -419,7 +443,6 @@ function renderIncomingPlaceholder(name, size){
   incomingPlace.appendChild(wrap);
 }
 
-// show received file and download button
 function showReceivedFile(name, size, url){
   incomingPlace.innerHTML = '';
   const wrap = document.createElement('div'); wrap.className = 'download-card';
@@ -428,35 +451,44 @@ function showReceivedFile(name, size, url){
   const sz = document.createElement('div'); sz.className = 'file-size'; sz.textContent = humanFileSize(size);
   meta.appendChild(nm); meta.appendChild(sz);
   const a = document.createElement('a'); a.href = url; a.download = name; a.className = 'download-btn'; a.textContent = 'Download';
-  a.onclick = () => setTransfer('Downloaded');
+  a.onclick = () => setStatus('done','Downloaded');
   wrap.appendChild(meta); wrap.appendChild(a);
   incomingPlace.appendChild(wrap);
 }
 
+// helper functions
 function humanFileSize(size){
   if(size < 1024) return size + ' B';
   const i = Math.floor(Math.log(size)/Math.log(1024));
   const sizes = ['B','KB','MB','GB','TB'];
   return (size/Math.pow(1024,i)).toFixed(1) + ' ' + sizes[i];
 }
-
+function waitForCondition(fn, timeout=10000){
+  return new Promise((res, rej) => {
+    const start = Date.now();
+    (function check(){ try{ if(fn()) return res(); }catch(e){}
+      if(Date.now() - start > timeout) return rej(new Error('timeout'));
+      setTimeout(check, 200);
+    })();
+  });
+}
+function generateCode(){ return (Math.floor(1000 + Math.random()*9000)).toString(); }
 function cleanup(){
   if(ws){ try{ ws.close(); }catch(e){} ws = null; }
   if(pc){ try{ pc.close(); }catch(e){} pc = null; }
-  dataChannel = null;
-  incomingInfo = null; incomingBuffers = []; incomingReceived = 0;
+  dataChannel = null; incomingInfo = null; incomingBuffers = []; incomingReceived = 0;
   sendProgressWrap.classList.add('hidden'); recvProgressWrap.classList.add('hidden');
-  sendBar.style.width = '0%'; recvBar.style.width = '0%';
-  incomingPlace.innerHTML = '';
-  setPeer('Idle'); setTransfer('Idle');
+  sendBar.style.width = '0%'; recvBar.style.width = '0%'; incomingPlace.innerHTML = '';
+  setStatus('idle','No session'); setSmall('');
   currentRoom = null;
 }
+function log(...args){ console.log('[AetherDrop]', ...args); }
 
-function log(...a){ console.log('[AetherDrop]', ...a); }
-
-// initialize on load
+// start UI
 showPanel('home');
-window.addEventListener('beforeunload', cleanup);
+// default theme: dark (no attr) — keep stable across reloads? simple in-memory
+document.documentElement.setAttribute('data-theme','dark');
+
 </script>
 </body>
 </html>
