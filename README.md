@@ -3,8 +3,6 @@
 AetherDrop is a browser-based, peer-to-peer file sharing tool that works over your local Wi-Fi network.  
 Files are transferred directly between devices using **WebRTC**, without being uploaded to any server.
 
-![AetherDrop Logo](icon.png)
-
 ## Features
 - **Direct P2P transfer** — files never touch a cloud server.
 - **Works over LAN/Wi-Fi** — best performance when both devices share the same network.
